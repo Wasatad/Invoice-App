@@ -28,7 +28,7 @@ export default {};
 .lds-ellipsis {
   display: inline-block;
   position: absolute;
-  top: 70%;
+  top: 60%;
   left: 50%;
   width: 80px;
   height: 80px;

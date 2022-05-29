@@ -15,7 +15,8 @@
           <img src="../assets/icon-arrow-left.svg" alt="" />
           <span>Go Back</span>
         </div>
-        <h1 class="form-title">New Invoice</h1>
+        <h1 v-if="!editingMode" class="form-title">New Invoice</h1>
+        <h1 v-else class="form-title">Edit Invoice</h1>
         <!-- Bill from -->
 
         <div class="bill-from">
@@ -126,12 +127,15 @@
               :autoPosition="true"
               :enableTimePicker="false"
               :format="dateFormatter"
+              :readonly="this.$store.state.editingMode"
             >
             </Datepicker>
           </div>
           <div class="input-container">
             <div class="select-title">
               <span>Payment Terms</span>
+            </div>
+            <div class="payment-terms">
               <div v-show="isSelectOpened" class="select-options">
                 <div @click="setPaymentTerm" data-term="1" class="option">
                   Net 1 Day
@@ -146,8 +150,6 @@
                   Net 30 Days
                 </div>
               </div>
-            </div>
-            <div v-click-away="hideSelectOptions" class="payment-terms">
               <div class="custom-select">
                 <div @click="toggleSelect" class="custom-select-title">
                   <span class="custom-select-dropdown">{{
@@ -180,16 +182,31 @@
             </div>
             <div class="qty">
               <label for="qty">Qty.</label>
-              <input required type="text" id="qty" v-model="item.qty" />
+              <input
+                @input="validate"
+                required
+                type="text"
+                id="qty"
+                v-model="item.qty"
+              />
             </div>
             <div class="price">
               <label for="price">Price</label>
-              <input required type="text" id="price" v-model="item.price" />
+              <input
+                required
+                @input="validate"
+                type="number"
+                min="1"
+                id="price"
+                v-model="item.price"
+              />
             </div>
             <div class="total">
               <label class="total-label">Total</label>
               <div class="total-price">
-                ${{ (item.total = item.qty * item.price) }}
+                ${{
+                  (item.total = validated(item.qty) * validated(item.price))
+                }}
               </div>
             </div>
             <div @click="deleteItem(item.id)" class="icon-delete">
@@ -209,16 +226,34 @@
         <div v-if="emptyItems" class="alert">- An item must be added</div>
         <div class="bottom-buttons">
           <div class="left-side">
-            <button type="button" @click="closeForm" class="discard">
+            <button
+              v-show="!editingMode"
+              type="button"
+              @click="closeForm"
+              class="discard"
+            >
               Discard
             </button>
           </div>
           <div class="right-side">
-            <button type="submit" @click="saveDraft" class="draft">
+            <button
+              v-if="!editingMode"
+              type="submit"
+              @click="saveDraft"
+              class="draft"
+            >
               Save as Draft
             </button>
+            <button
+              v-if="editingMode"
+              type="button"
+              @click="closeForm"
+              class="cancel-btn"
+            >
+              Cancel
+            </button>
             <button type="submit" @click="sendInvoice" class="send">
-              Save & Send
+              {{ !editingMode ? "Save & Send" : "Save Changes" }}
             </button>
           </div>
         </div>
@@ -230,11 +265,17 @@
 <script>
 import LoadingAnimation from "./LoadingAnimation.vue";
 import db from "../firebase/firebaseInit";
-import { collection, addDoc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  doc,
+  updateDoc,
+  increment,
+} from "firebase/firestore";
 import Datepicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 import { uid } from "uid";
-import { mapMutations } from "vuex";
+import { mapActions, mapMutations, mapState } from "vuex";
 export default {
   components: { Datepicker, LoadingAnimation },
   data() {
@@ -259,12 +300,21 @@ export default {
         postCode: null,
         country: null,
       },
-      items: [{ name: "", qty: 1, price: "0", total: "0" }],
+      items: [
+        {
+          name: "",
+          qty: 1,
+          price: "0",
+          total: "0",
+        },
+      ],
       total: 0,
 
       paymentTermTitle: "Net 1 Day",
       isSelectOpened: false,
-      datePicked: new Date(),
+      datePicked: this.$store.state.editingMode
+        ? new Date(Date.parse(this.$store.state.currentInvoice.createdAt))
+        : new Date(),
       animationIsReady: false,
       emptyItems: false,
       loading: false,
@@ -276,6 +326,8 @@ export default {
   },
 
   methods: {
+    ...mapMutations(["TOGGLE_FORM", "TOGGLE_EDITING_MODE"]),
+    ...mapActions(["GET_INVOICES"]),
     toggleSelect() {
       if (this.isSelectOpened == false) {
         this.isSelectOpened = true;
@@ -293,6 +345,7 @@ export default {
     setPaymentTerm(e) {
       this.paymentTerms = +e.target.dataset.term;
       this.paymentTermTitle = e.target.innerText;
+      this.hideSelectOptions();
     },
     dateFormatter(date) {
       const day = date.getDate();
@@ -327,11 +380,13 @@ export default {
 
       return `${day} ${month()} ${year}`;
     },
-    ...mapMutations(["TOGGLE_FORM"]),
+
     closeForm() {
       this.animationIsReady = false;
+
       setTimeout(() => {
         this.TOGGLE_FORM();
+        this.TOGGLE_EDITING_MODE();
       }, 600);
     },
     addItem() {
@@ -346,14 +401,11 @@ export default {
     deleteItem(id) {
       this.items = this.items.filter((item) => item.id != id);
     },
-    showDate() {
-      console.log(1);
-    },
     calculateTotalPrice() {
       this.total = 0;
       const initialValue = 0;
       let total = this.items.reduce(
-        (prev, curr) => prev + +curr.price,
+        (prev, curr) => prev + +curr.price * curr.qty,
         initialValue
       );
       this.total = total;
@@ -372,10 +424,10 @@ export default {
       return `${dateArg.getFullYear()}-${month()}-${date()}`;
     },
     saveDraft() {
-      this.status = "draft";
+      this.status = "Draft";
     },
     sendInvoice() {
-      this.status = "pending";
+      this.status = "Pending";
     },
     async submitForm() {
       if (this.items.length < 1) {
@@ -387,34 +439,152 @@ export default {
 
       this.calculateTotalPrice();
 
-      await addDoc(collection(db, "invoices"), {
-        invoiceId: uid(6),
-        createdAt: this.createdAt,
-        paymentDue: this.paymentDue,
-        description: this.description,
-        paymentTerms: this.paymentTerms,
-        clientName: this.clientName,
-        clientEmail: this.clientEmail,
-        status: this.status,
-        senderAddress: {
-          street: this.senderAddress.street,
-          city: this.senderAddress.city,
-          postCode: this.senderAddress.postCode,
-          country: this.senderAddress.country,
-        },
-        clientAddress: {
-          street: this.clientAddress.street,
-          city: this.clientAddress.city,
-          postCode: this.clientAddress.postCode,
-          country: this.clientAddress.country,
-        },
-        items: this.items,
-        total: this.total,
-        timestamp: Date.now(),
-        type: "invoice",
-      });
+      const invoices = collection(db, "invoices");
+
+      if (!this.editingMode) {
+        await addDoc(invoices, {
+          invoiceId: uid(6),
+          createdAt: this.createdAt,
+          paymentDue: this.paymentDue,
+          description: this.description,
+          paymentTerms: this.paymentTerms,
+          clientName: this.clientName,
+          clientEmail: this.clientEmail,
+          status: this.status,
+          senderAddress: {
+            street: this.senderAddress.street,
+            city: this.senderAddress.city,
+            postCode: this.senderAddress.postCode,
+            country: this.senderAddress.country,
+          },
+          clientAddress: {
+            street: this.clientAddress.street,
+            city: this.clientAddress.city,
+            postCode: this.clientAddress.postCode,
+            country: this.clientAddress.country,
+          },
+          items: this.items,
+          total: this.total,
+          timestamp: Date.now(),
+          type: "invoice",
+        });
+
+        // Обновляем данные о длине коллекции внтури спец документа
+        const lengthStorage = doc(db, "invoices", "hHjzseGrUKntiPgVBTbS");
+        await updateDoc(lengthStorage, {
+          fullLength: increment(1),
+        });
+
+        if (this.status == "Pending") {
+          await updateDoc(lengthStorage, {
+            pendingLength: increment(1),
+          });
+        } else if (this.status == "Draft") {
+          await updateDoc(lengthStorage, {
+            draftLength: increment(1),
+          });
+        } else if (this.status == "paidLength") {
+          await updateDoc(lengthStorage, {
+            paidLength: increment(1),
+          });
+        }
+      } else {
+        const updatedInvoice = doc(db, "invoices", this.currentInvoice.docId);
+        await updateDoc(updatedInvoice, {
+          paymentDue: this.paymentDue,
+          description: this.description,
+          paymentTerms: this.paymentTerms,
+          clientName: this.clientName,
+          clientEmail: this.clientEmail,
+          senderAddress: {
+            street: this.senderAddress.street,
+            city: this.senderAddress.city,
+            postCode: this.senderAddress.postCode,
+            country: this.senderAddress.country,
+          },
+          clientAddress: {
+            street: this.clientAddress.street,
+            city: this.clientAddress.city,
+            postCode: this.clientAddress.postCode,
+            country: this.clientAddress.country,
+          },
+          items: this.items,
+          total: this.total,
+          timestamp: Date.now(),
+        });
+
+        if (this.currentInvoice.status == "Draft") {
+          await updateDoc(updatedInvoice, {
+            status: "Pending",
+          });
+          this.currentInvoice.status = "Pending";
+
+          const lengthStorage = doc(db, "invoices", "hHjzseGrUKntiPgVBTbS");
+          await updateDoc(lengthStorage, {
+            pendingLength: increment(1),
+          });
+          await updateDoc(lengthStorage, {
+            draftLength: increment(-1),
+          });
+        } else if (this.currentInvoice.status == "Paid") {
+          await updateDoc(updatedInvoice, {
+            status: "Pending",
+          });
+          this.currentInvoice.status = "Pending";
+
+          const lengthStorage = doc(db, "invoices", "hHjzseGrUKntiPgVBTbS");
+          await updateDoc(lengthStorage, {
+            pendingLength: increment(1),
+          });
+          await updateDoc(lengthStorage, {
+            paidLength: increment(-1),
+          });
+        }
+
+        //Update current invoice
+        this.currentInvoice.paymentDue = this.paymentDue;
+        this.currentInvoice.description = this.description;
+        this.currentInvoice.paymentTerms = this.paymentTerms;
+        this.currentInvoice.clientName = this.clientName;
+        this.currentInvoice.clientEmail = this.clientEmail;
+        this.currentInvoice.senderAddress = this.senderAddress;
+        this.currentInvoice.clientAddress = this.clientAddress;
+        this.currentInvoice.items = this.items;
+        this.currentInvoice.total = this.total;
+        this.currentInvoice.status = "Pending";
+
+        const serialObj = JSON.stringify(this.currentInvoice);
+        localStorage.setItem("currentInvoice", serialObj);
+      }
       this.loading = false;
       this.closeForm();
+
+      this.GET_INVOICES();
+    },
+    validate(e) {
+      if (e.target.value[0] == "0") {
+        let validated = e.target.value.split("").slice(1).join("");
+        e.target.value = validated;
+      }
+    },
+    validated(data) {
+      if (data[0] == "0") {
+        let validated = data.split("").slice(1).join("");
+        data = validated;
+      }
+      // if (data.length > 0) {
+      //   for (let i = 0; i < data.split("").length; i++) {
+      //     if (data.split("")[i] != +data.split("")[i]) {
+      //       let filtred = data
+      //         .split("")
+      //         .filter((item) => item !== data.split("")[i]);
+
+      //       data = filtred.join("");
+
+      //     }
+      //   }
+      // }
+      return data;
     },
   },
   watch: {
@@ -432,18 +602,58 @@ export default {
       this.paymentDue = this.dateToString(cloneDate);
     },
   },
-  created() {},
+  computed: {
+    ...mapState(["editingMode", "currentInvoice"]),
+  },
+
+  created() {
+    if (this.editingMode) {
+      this.invoiceId = this.currentInvoice.invoiceId;
+      this.paymentDue = this.currentInvoice.paymentDue;
+      if (this.currentInvoice.paymentTerms == 1) {
+        this.paymentTermTitle = "Net 1 Day";
+      } else if (this.currentInvoice.paymentTerms == 7) {
+        this.paymentTermTitle = "Net 7 Days";
+      } else if (this.currentInvoice.paymentTerms == 14) {
+        this.paymentTermTitle = "Net 14 Days";
+      } else if (this.currentInvoice.paymentTerms == 30) {
+        this.paymentTermTitle = "Net 30 Days";
+      }
+
+      this.description = this.currentInvoice.description;
+      this.paymentTerms = this.currentInvoice.paymentTerms;
+      this.clientName = this.currentInvoice.clientName;
+      this.clientEmail = this.currentInvoice.clientEmail;
+      this.status = this.currentInvoice.status;
+      this.senderAddress = this.currentInvoice.senderAddress;
+      this.clientAddress = this.currentInvoice.clientAddress;
+      this.items = this.currentInvoice.items;
+      this.total = this.currentInvoice.total;
+      this.timestamp = Date.now();
+    }
+  },
   mounted() {
     this.animationIsReady = true;
 
     //Set initial payment term
     let datePicked = this.datePicked;
+    this.createdAt = this.dateToString(new Date());
     let cloneDate = new Date(datePicked.getTime());
 
     let postponement = this.paymentTermTitle.split(" ")[1];
     cloneDate.setDate(cloneDate.getDate() + +postponement);
 
     this.paymentDue = this.dateToString(cloneDate);
+
+    //Make data disabled in editing mode
+    if (this.editingMode) {
+      setTimeout(() => {
+        document.querySelector(
+          ".date.input-block .input-container"
+        ).style.opacity = "40%";
+        document.querySelector(".dp__input").style.cursor = "default";
+      }, 100);
+    }
   },
 };
 </script>
@@ -535,6 +745,17 @@ export default {
       position: relative;
     }
 
+    /* Chrome, Safari, Edge, Opera */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Firefox */
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
     input {
       height: 48px;
       width: 100%;
@@ -630,10 +851,13 @@ export default {
       }
     }
   }
+
+  .payment-terms {
+    position: relative;
+  }
   .select-options {
     display: flex;
     flex-direction: column;
-    // gap: 16px;
     color: #fff;
 
     font-weight: 700;
@@ -643,13 +867,15 @@ export default {
     border-radius: 8px;
     width: 100%;
     position: absolute;
-    z-index: 2;
-    top: 80px;
+    z-index: 1000;
+    top: 54px;
     left: 0px;
+    cursor: pointer;
 
     .option {
       padding: 16px 16px;
       cursor: pointer;
+
       &:not(:last-child) {
         border-bottom: 1px solid $spaceCadetDark;
       }
@@ -762,7 +988,16 @@ export default {
   .bottom-buttons {
     display: flex;
     justify-content: space-between;
-    // gap: 8px;
+    @media (max-width: 500px) {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      z-index: 2;
+      background-color: $xiketic;
+      padding: 12px 6px;
+      width: 100%;
+    }
+
     .discard {
       padding: 0px 24px;
       height: 48px;
@@ -802,6 +1037,28 @@ export default {
 
       &:hover {
         color: $lavenderWeb;
+      }
+      @media (max-width: 450px) {
+        padding: 0px 16px;
+      }
+    }
+
+    .cancel-btn {
+      padding: 0px 24px;
+      height: 48px;
+      border-radius: 24px;
+      background-color: $spaceCadetLight;
+      color: $lavenderWeb;
+
+      font-weight: 700;
+
+      font-size: 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+
+      &:hover {
+        background-color: $spaceCadetDark;
       }
       @media (max-width: 450px) {
         padding: 0px 16px;
@@ -876,7 +1133,6 @@ export default {
 }
 
 // Form transition
-
 .form-enter-active,
 .form-leave-active {
   transition: 0.6s ease all;

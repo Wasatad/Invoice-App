@@ -3,7 +3,7 @@
     <div class="title-block">
       <div class="title">Invoices</div>
       <div class="info">
-        <span>There are </span>{{ paginationRecords }} total invoices
+        <span>There are </span>{{ collectionLength }} total invoices
       </div>
     </div>
     <div v-click-away="hideFilterMenu" class="controls">
@@ -53,34 +53,44 @@
       </button>
     </div>
   </div>
-
-  <div v-for="invoice in stateInvoices" :key="invoice.invoiceId" class="item">
-    <div class="item-info">
-      <div class="id">
-        <span class="hashtag">#</span>{{ invoice.invoiceId }}
-      </div>
-      <div class="date">Due {{ invoice.paymentDue }}</div>
-      <div class="price">$ {{ invoice.total }}</div>
-      <div class="name">{{ invoice.clientName }}</div>
-    </div>
-    <div class="price-status">
-      <div class="name">{{ invoice.clientName }}</div>
-      <div class="price">$ {{ invoice.total }}</div>
-      <div
-        :class="[
-          { paid: invoice.status == 'paid' },
-          { pending: invoice.status == 'pending' },
-          { draft: invoice.status == 'draft' },
-        ]"
-      >
-        <div class="status">
-          <span>{{ invoice.status }}</span>
+  <infinite-scroll @infinite-scroll="loadMoreInvoices" :noResult="noResult">
+    <loading-animation v-if="invoicesIsLoading"></loading-animation>
+    <router-link
+      :to="{
+        name: 'InvoiceDetails',
+        params: { invoiceId: invoice.invoiceId },
+      }"
+      v-for="invoice in stateInvoices"
+      :key="invoice.invoiceId"
+      class="item"
+    >
+      <div class="item-info">
+        <div class="id">
+          <span class="hashtag">#</span>{{ invoice.invoiceId }}
         </div>
-        <img src="../assets/icon-arrow-right.svg" alt="" />
+        <div class="date">Due {{ dateFormatter(invoice.paymentDue) }}</div>
+        <div class="price">$ {{ invoice.total }}</div>
+        <div class="name">{{ invoice.clientName }}</div>
       </div>
-    </div>
-  </div>
-  <div v-if="stateInvoices.length < 1" class="empty-placeholder">
+      <div class="price-status">
+        <div class="name">{{ invoice.clientName }}</div>
+        <div class="price">$ {{ invoice.total }}</div>
+        <div
+          :class="[
+            { paid: invoice.status == 'Paid' },
+            { pending: invoice.status == 'Pending' },
+            { draft: invoice.status == 'Draft' },
+          ]"
+        >
+          <div class="status">
+            <span>{{ invoice.status }}</span>
+          </div>
+          <img src="../assets/icon-arrow-right.svg" alt="" />
+        </div>
+      </div>
+    </router-link>
+  </infinite-scroll>
+  <div v-if="showPlaceholder" class="empty-placeholder">
     <img src="../assets/illustration-empty.svg" alt="" />
     <div class="empty-title">There is nothing here</div>
     <div class="empty-description">
@@ -88,47 +98,43 @@
       started
     </div>
   </div>
-  <pagination
-    v-model="page"
-    :records="paginationRecords"
-    :per-page="itemsPerPage"
-    :options="paginationOptions"
-    @paginate="paginationPage"
-  />
 </template>
 
 <script>
 import { mapActions, mapMutations, mapState } from "vuex";
-import pagination from "v-pagination-3";
+import InfiniteScroll from "infinite-loading-vue3";
+import LoadingAnimation from "./LoadingAnimation.vue";
+
 export default {
-  components: { pagination },
+  components: { InfiniteScroll, LoadingAnimation },
   data() {
     return {
-      page: 1,
-      filters: { draft: false, pending: false, paid: false },
+      filters: { Draft: false, Pending: false, Paid: false },
       isFilterMenuOpened: false,
 
       //CSS classes
       draft: "draft",
       pending: "pending",
       paid: "paid",
+      notShown: "not-shown",
+
+      //Infinite scroll option
+      noResult: true,
     };
   },
   computed: {
     ...mapState([
-      "itemsPerPage",
-      "paginationRecords",
-      "paginationOptions",
       "stateInvoices",
+      "collectionLength",
+      "showPlaceholder",
+      "invoicesIsLoading",
     ]),
   },
+
   methods: {
-    ...mapMutations(["TOGGLE_FORM", "SET_FILTERS", "SET_ACTIVE_PAGE"]),
+    ...mapMutations(["TOGGLE_FORM", "SET_FILTERS"]),
     ...mapActions(["GET_INVOICES"]),
-    paginationPage(e) {
-      this.SET_ACTIVE_PAGE(e);
-      this.GET_INVOICES();
-    },
+
     toggleFilterMenu() {
       if (this.isFilterMenuOpened == false) {
         this.isFilterMenuOpened = true;
@@ -151,15 +157,62 @@ export default {
       let pending = document.getElementById("pending");
       let paid = document.getElementById("paid");
 
-      this.filters.draft = draft.checked;
-      this.filters.pending = pending.checked;
-      this.filters.paid = paid.checked;
+      this.filters.Draft = draft.checked;
+      this.filters.Pending = pending.checked;
+      this.filters.Paid = paid.checked;
       this.SET_FILTERS(this.filters);
       this.GET_INVOICES();
+    },
+
+    dateFormatter(payload) {
+      let date = new Date(Date.parse(payload));
+      const day = date.getDate();
+      function month() {
+        if (date.getMonth() == 0) {
+          return "Jan";
+        } else if (date.getMonth() == 1) {
+          return "Feb";
+        } else if (date.getMonth() == 2) {
+          return "Mar";
+        } else if (date.getMonth() == 3) {
+          return "Apr";
+        } else if (date.getMonth() == 4) {
+          return "May";
+        } else if (date.getMonth() == 5) {
+          return "June";
+        } else if (date.getMonth() == 6) {
+          return "July";
+        } else if (date.getMonth() == 7) {
+          return "Aug";
+        } else if (date.getMonth() == 8) {
+          return "Sept";
+        } else if (date.getMonth() == 9) {
+          return "Oct";
+        } else if (date.getMonth() == 10) {
+          return "Nov";
+        } else if (date.getMonth() == 11) {
+          return "Dec";
+        }
+      }
+      const year = date.getFullYear();
+
+      // console.log(`${day} ${month()} ${year}`);
+      return `${day} ${month()} ${year}`;
+    },
+
+    loadMoreInvoices() {
+      this.GET_INVOICES("addMoreInvoices");
     },
   },
   created() {
     this.GET_INVOICES();
+
+    window.onscroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+        this.GET_INVOICES("addMoreInvoices");
+        window.scrollBy(0, -1);
+      }
+    };
   },
 };
 </script>
@@ -352,6 +405,7 @@ export default {
   border: 1px solid $spaceCadetDark;
   margin-bottom: 16px;
   cursor: pointer;
+  text-decoration: none;
   transition: 0.3s;
   &:hover {
     border: 1px solid $mediumSlateBlue;
@@ -437,7 +491,13 @@ export default {
       align-items: center;
 
       .status {
-        padding: 14px 30px 12px 46px;
+        padding: 0px 0px 0px 14px;
+        width: 104px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
         background-color: rgba(51, 214, 159, 0.06);
         color: rgba(51, 214, 159, 1);
         border-radius: 6px;
@@ -472,7 +532,13 @@ export default {
       align-items: center;
 
       .status {
-        padding: 14px 30px 12px 46px;
+        padding: 0px 0px 0px 14px;
+        width: 104px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
         background-color: rgba(255, 143, 0, 0.06);
         color: rgba(255, 143, 0, 1);
         border-radius: 6px;
@@ -507,7 +573,13 @@ export default {
       align-items: center;
 
       .status {
-        padding: 14px 30px 12px 46px;
+        padding: 0px 0px 0px 14px;
+        width: 104px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
         background-color: rgba(223, 227, 250, 0.06);
         color: $lavenderWeb;
         border-radius: 6px;
@@ -573,41 +645,28 @@ export default {
   }
 }
 
-// Pagination
-.VuePagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+//Loading spinner
+// .spinner {
+//   border: 3px dotted $lavenderWeb !important;
 
-  button {
-    cursor: pointer;
-    border: 1px solid $xiketic;
-    &:hover {
-      border: 1px solid $mediumSlateBlue;
-      border-radius: 4px;
-      color: $mediumSlateBlue;
-    }
-  }
+//   height: 3rem !important;
+//   width: 3rem !important;
 
-  .pagination {
-    display: flex;
-    margin-bottom: 16px;
+//   &::before {
+//     width: 0 !important;
+//   }
+// }
 
-    .page-link {
-      color: #585b73;
-      background-color: $xiketic;
-      padding: 8px 12px 4px;
-    }
-    .active {
-      color: #fff;
-      background-color: $mediumSlateBlue;
-      border-radius: 4px;
-    }
-  }
-  .VuePagination__count {
-    color: $lavenderWeb;
-    font-weight: 300;
-    font-size: 16px;
-  }
-}
+// .swal2-popup {
+//   background-color: $spaceCadetLight !important;
+//   color: #fff !important;
+// }
+
+// .swal2-content {
+//   color: #fff !important;
+// }
+
+// .swal2-container {
+//   background-color: rgba(0, 0, 0, 0.4) !important;
+// }
 </style>

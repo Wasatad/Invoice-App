@@ -1,6 +1,7 @@
 <template>
   <div class="app-content">
     <DeleteModal v-if="deleteModalActive" />
+
     <InvoiceForm v-if="invoiceForm" />
 
     <control-panel></control-panel>
@@ -74,6 +75,4 @@ a:not([class]) {
     padding: 0 15px 60px;
   }
 }
-
-// Form transition
 </style>

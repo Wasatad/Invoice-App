@@ -1,22 +1,65 @@
 <template>
-  <div class="modal-wrap">
-    <div class="modal-card">
-      <h2>Confirm Deletion</h2>
+  <div @click.self="cancelDelete" class="modal-wrap">
+    <transition name="delete-modal">
+      <div v-if="animationIsReady" class="modal-card">
+        <h2>Confirm Deletion</h2>
 
-      <div class="description">
-        Are you sure you want to delete invoice #XM9141? This action cannot be
-        undone.
+        <div class="description">
+          Are you sure you want to delete invoice #{{
+            currentInvoice.invoiceId
+          }}? This action cannot be undone.
+        </div>
+        <div class="buttons">
+          <button @click="cancelDelete">Cancel</button>
+          <button @click="confirmDelete">
+            <div class="lds-ring">
+              Delete
+              <div v-if="btnAnimation"></div>
+            </div>
+          </button>
+        </div>
       </div>
-      <div class="buttons">
-        <button @click="deleteItem">Cancel</button>
-        <button @click="cancelDelete">Delete</button>
-      </div>
-    </div>
+    </transition>
   </div>
 </template>
 
 <script>
-export default {};
+import { mapActions, mapMutations, mapState } from "vuex";
+import router from "../router/router.js";
+export default {
+  data() {
+    return {
+      animationIsReady: false,
+      btnAnimation: false,
+    };
+  },
+  methods: {
+    ...mapActions(["DELETE_INVOICE"]),
+    ...mapMutations(["TOGGLE_MODAL"]),
+    async confirmDelete() {
+      this.btnAnimation = true;
+      await this.DELETE_INVOICE();
+      this.btnAnimation = false;
+      this.animationIsReady = false;
+      setTimeout(() => {
+        this.TOGGLE_MODAL();
+        router.push({ name: "InvoicesList" });
+      }, 600);
+    },
+    cancelDelete() {
+      this.animationIsReady = false;
+      setTimeout(() => {
+        this.TOGGLE_MODAL();
+      }, 600);
+    },
+  },
+  computed: {
+    ...mapState(["currentInvoice"]),
+  },
+  mounted() {
+    this.animationIsReady = true;
+  },
+};
 </script>
 
 <style lang="scss">
@@ -25,15 +68,24 @@ export default {};
   position: absolute;
   width: 100%;
   height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 15px;
   background-color: rgba(0, 0, 0, 0.6);
 
   .modal-card {
     background-color: $spaceCadetDark;
-    margin: calc(40vh) auto;
+    // margin: calc(40vh);
+
     max-width: 480px;
     padding: 46px;
     border-radius: 12px;
     color: #fff;
+    @media (max-width: 800px) {
+      padding: 24px;
+    }
 
     h2 {
       font-weight: 700;
@@ -52,6 +104,9 @@ export default {};
       display: flex;
       justify-content: flex-end;
       gap: 8px;
+      @media (max-width: 400px) {
+        flex-direction: column;
+      }
       button {
         cursor: pointer;
         padding: 17px 24px;
@@ -73,6 +128,45 @@ export default {};
           }
         }
       }
+    }
+  }
+  // Form transition
+  .delete-modal-enter-active,
+  .delete-modal-leave-active {
+    transition: 0.6s ease all;
+  }
+
+  .delete-modal-enter-from,
+  .delete-modal-leave-to {
+    transform: translateY(1500px);
+  }
+
+  //Btn animation
+  .lds-ring {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row-reverse;
+    gap: 8px;
+  }
+  .lds-ring div {
+    box-sizing: border-box;
+    display: block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    animation: lds-ring 0.3s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    border-color: #fff transparent transparent transparent;
+  }
+
+  @keyframes lds-ring {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
     }
   }
 }

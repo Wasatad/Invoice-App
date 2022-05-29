@@ -1,4 +1,5 @@
 import { createStore } from "vuex";
+
 import db from "../firebase/firebaseInit";
 import {
   query,
@@ -8,6 +9,10 @@ import {
   startAt,
   where,
   limit,
+  updateDoc,
+  deleteDoc,
+  increment,
+  doc,
 } from "firebase/firestore";
 
 export default createStore({
@@ -16,20 +21,16 @@ export default createStore({
     invoiceForm: null,
     deleteModalActive: null,
     collectionLength: 0,
+    itemsPerPage: 12,
+    lastDocSnapshot: null,
+    invoicesIsLoading: false,
+    currentInvoice: null,
+    editingMode: null,
+
+    showPlaceholder: false,
 
     //Applied filters
-    filters: { draft: false, pending: false, paid: false },
-
-    //Pagination settings
-    itemsPerPage: 3,
-    paginationPage: 1,
-    paginationRecords: 20,
-    paginationOptions: {
-      chunk: 5,
-      texts: {
-        count: `Showing {from} to {to} of {count} invoices|{count} invoices|One invoice`,
-      },
-    },
+    filters: { Draft: false, Pending: false, Paid: false },
   },
   mutations: {
     TOGGLE_FORM(state) {
@@ -38,21 +39,65 @@ export default createStore({
     TOGGLE_MODAL(state) {
       state.deleteModalActive = !state.deleteModalActive;
     },
+    CONFIRM_DELETE(state, payload) {
+      console.log(payload);
+      state.deleteConfirmed = payload;
+    },
     SET_FILTERS(state, payload) {
       state.filters = payload;
     },
     GET_INVOICES(state, payload) {
       state.stateInvoices.push(payload);
     },
-    SET_ACTIVE_PAGE(state, payload) {
-      state.paginationPage = +payload;
+    SET_CURRENT_INVOICE(state, payload) {
+      if (
+        !localStorage.currentInvoice ||
+        JSON.parse(localStorage.getItem("currentInvoice")).invoiceId != payload
+      ) {
+        state.currentInvoice = state.stateInvoices.filter((invoice) => {
+          return invoice.invoiceId == payload;
+        });
+
+        const data = {
+          docId: state.currentInvoice[0].docId,
+          invoiceId: state.currentInvoice[0].invoiceId,
+          createdAt: state.currentInvoice[0].createdAt,
+          paymentDue: state.currentInvoice[0].paymentDue,
+          description: state.currentInvoice[0].description,
+          paymentTerms: state.currentInvoice[0].paymentTerms,
+          clientName: state.currentInvoice[0].clientName,
+          clientEmail: state.currentInvoice[0].clientEmail,
+          status: state.currentInvoice[0].status,
+          senderAddress: state.currentInvoice[0].senderAddress,
+
+          clientAddress: state.currentInvoice[0].clientAddress,
+          items: state.currentInvoice[0].items,
+          total: state.currentInvoice[0].total,
+          timestamp: state.currentInvoice[0].timestamp,
+        };
+
+        const serialObj = JSON.stringify(data);
+
+        localStorage.setItem("currentInvoice", serialObj);
+      }
+
+      state.currentInvoice = JSON.parse(localStorage.getItem("currentInvoice"));
+    },
+    TOGGLE_EDITING_MODE(state) {
+      state.editingMode = !state.editingMode;
     },
   },
   actions: {
-    async GET_INVOICES(context) {
+    async GET_INVOICES(context, payload) {
       //1. Обнуление списка примененных фильтров, списка инвойсов в state и установка начальной страницы в пагинации
       let filterTerms = [];
-      context.state.stateInvoices = [];
+      context.state.showPlaceholder = false;
+
+      // Проверяем, не вызвана ли функция их обзорщика скролла
+      if (payload != "addMoreInvoices") {
+        context.state.stateInvoices = [];
+        context.state.invoicesIsLoading = true;
+      }
 
       //2. Формирование списка примененных фильтров в виде массива
       const invoices = collection(db, "invoices");
@@ -60,7 +105,7 @@ export default createStore({
         (k) => context.state.filters[k]
       );
       if (filterTerms.length < 1) {
-        filterTerms = ["draft", "pending", "paid"];
+        filterTerms = ["Draft", "Pending", "Paid"];
       }
 
       //3. Проверяем, есть ли примененные фильтры и устанавливаем длину всего списка инвойсов с учетом полученной информации
@@ -75,17 +120,17 @@ export default createStore({
           return arr.find((i) => i === elem) != undefined;
         }
         if (filterTerms.length > 0 && filterTerms.length < 3) {
-          if (contains(filterTerms, "pending")) {
+          if (contains(filterTerms, "Pending")) {
             querySnapshot.forEach((doc) => {
               length += doc.data().pendingLength;
             });
           }
-          if (contains(filterTerms, "draft")) {
+          if (contains(filterTerms, "Draft")) {
             querySnapshot.forEach((doc) => {
               length += doc.data().draftLength;
             });
           }
-          if (contains(filterTerms, "paid")) {
+          if (contains(filterTerms, "Paid")) {
             querySnapshot.forEach((doc) => {
               length += doc.data().paidLength;
             });
@@ -103,22 +148,12 @@ export default createStore({
 
       //5. Передаю длину коллекции с учетом примененных фильтров в переменную определяющую пагинацию
       context.state.collectionLength = await checkLength();
-      context.state.paginationRecords = await checkLength();
-
-      //   //4. При клике на пагинацию передавать в state номер страницы
-      //   //5. Вывести 5 итемов из коллекции. StartAt (номер страницы умноженный на длину итемов на странице - длина итемов на странице )
-      console.log(context.state.paginationPage);
-      console.log(
-        context.state.paginationPage * context.state.itemsPerPage -
-          context.state.itemsPerPage +
-          1
-      );
 
       //6. Определяю таймстамп первого инвойса, чтобы отсчитывать от него следующие страницы
       let searchFirstDocQ = query(
         invoices,
         where("type", "==", "invoice"),
-        orderBy("timestamp"),
+        orderBy("timestamp", "desc"),
         limit(1)
       );
       let firstDocSnapshot = await getDocs(searchFirstDocQ);
@@ -126,24 +161,26 @@ export default createStore({
       firstDocSnapshot.forEach((doc) => {
         firstTimeStamp = doc.data().timestamp;
       });
-      console.log(firstTimeStamp);
 
+      //6. Запрашиваем блок инвойсов с учетом примененных фильтров и переносим их в state
       const q = query(
         invoices,
         where("type", "==", "invoice"),
         where("status", "in", filterTerms),
-        orderBy("timestamp"),
-        startAt(
-          firstTimeStamp
-          // context.state.paginationPage * context.state.itemsPerPage -
-          //   context.state.itemsPerPage +
-          //   1
-        ),
+        orderBy("timestamp", "desc"),
+        startAt(this.lastDocSnapshot ? this.lastDocSnapshot : firstTimeStamp),
         limit(context.state.itemsPerPage)
       );
       const querySnapshot = await getDocs(q);
 
-      //6. Запрашиваем блок инвойсов с учетом примененных фильтров и переносим их в state
+      //Сохраняем последний загруженный документ
+      this.lastDocSnapshot =
+        querySnapshot.docs[context.state.stateInvoices.length - 1];
+      if (querySnapshot.docs.length < 1) {
+        context.state.invoicesIsLoading = false;
+        context.state.showPlaceholder = true;
+      }
+
       querySnapshot.forEach((doc) => {
         if (
           context.state.stateInvoices.find(
@@ -165,9 +202,12 @@ export default createStore({
             clientAddress: doc.data().clientAddress,
             items: doc.data().items,
             total: doc.data().total,
-            type: "invoice",
+            timestamp: doc.data().timestamp,
           };
           context.commit("GET_INVOICES", data);
+          context.state.invoicesIsLoading = false;
+
+          checkLength();
         }
       });
 
@@ -175,6 +215,30 @@ export default createStore({
       //   //Также вызывается при добавлении нового инвойса, при этом номер страницы принудительно ставится = 1, переключается пагинация. setPage(page)
       //Обновляются сведения о длине коллекции для каждого фильтра
       //Данные о длинне обновляются также при обновлении статуса инвойса
+    },
+    async DELETE_INVOICE(context) {
+      const deletedInvoice = context.state.currentInvoice.docId;
+      await deleteDoc(doc(db, "invoices", deletedInvoice));
+
+      // Обновляем данные о длине коллекции внтури спец документа
+      const lengthStorage = doc(db, "invoices", "hHjzseGrUKntiPgVBTbS");
+      await updateDoc(lengthStorage, {
+        fullLength: increment(-1),
+      });
+
+      if (context.state.currentInvoice.status == "Pending") {
+        await updateDoc(lengthStorage, {
+          pendingLength: increment(-1),
+        });
+      } else if (context.state.currentInvoice.status == "Draft") {
+        await updateDoc(lengthStorage, {
+          draftLength: increment(-1),
+        });
+      } else if (context.state.currentInvoice.status == "Paid") {
+        await updateDoc(lengthStorage, {
+          paidLength: increment(-1),
+        });
+      }
     },
   },
 });
