@@ -119,10 +119,28 @@
           <div class="mobile-label">{{ item.qty }} x ${{ item.price }}</div>
         </td>
         <td align="right" class="qty-column">
-          <div class="data">{{ item.qty }}</div>
+          <div
+            :style="
+              this.darkMode
+                ? { color: 'rgba(223, 227, 250, 1)' }
+                : { color: 'rgba(126, 136, 195, 1)' }
+            "
+            class="data"
+          >
+            {{ item.qty }}
+          </div>
         </td>
         <td align="right" class="price-column">
-          <div class="data">$ {{ item.price }}</div>
+          <div
+            :style="
+              this.darkMode
+                ? { color: 'rgba(223, 227, 250, 1)' }
+                : { color: 'rgba(126, 136, 195, 1)' }
+            "
+            class="data"
+          >
+            $ {{ item.price }}
+          </div>
         </td>
         <td align="right">
           <div class="data">$ {{ item.total }}</div>
@@ -137,7 +155,7 @@
 </template>
 
 <script>
-import { mapMutations, mapState } from "vuex";
+import { mapMutations, mapState, mapGetters } from "vuex";
 import db from "../firebase/firebaseInit";
 import { doc, increment, updateDoc } from "firebase/firestore";
 
@@ -227,7 +245,28 @@ export default {
     },
   },
   computed: {
-    ...mapState(["currentInvoice", "deleteModalActive"]),
+    ...mapState(["currentInvoice", "deleteModalActive", "darkMode"]),
+    ...mapGetters([
+      "white",
+      "xiketic",
+      "cultured",
+      "lightCoral",
+      "redSalsa",
+      "richBlack",
+      "glaucous",
+      "coolGrey",
+      "lavenderWeb",
+      "spaceCadetLight",
+      "spaceCadetDark",
+      "mediumPurple",
+      "mediumSlateBlue",
+      "autofillTextColor",
+      "editBtnBg",
+      "editBtnText",
+      "editBtnBgHover",
+      "priceBlockBg",
+      "totalAmountBg",
+    ]),
     invoiceIsPaid() {
       if (this.currentInvoice.status == "Paid") return true;
       else {
@@ -254,7 +293,7 @@ export default {
   }
 
   text-decoration: none;
-  color: #fff;
+  color: v-bind(autofillTextColor);
   font-weight: 700;
   font-size: 15px;
   display: flex;
@@ -268,7 +307,7 @@ export default {
 
 .head-panel {
   padding: 24px 32px;
-  background-color: $spaceCadetDark;
+  background-color: v-bind(spaceCadetDark);
   border-radius: 8px;
   width: 100%;
 
@@ -283,7 +322,7 @@ export default {
     gap: 16px;
 
     span {
-      color: $lavenderWeb;
+      color: v-bind(lavenderWeb);
       font-weight: 400;
       font-size: 15px;
     }
@@ -373,8 +412,8 @@ export default {
         align-items: center;
         justify-content: center;
 
-        background-color: rgba(223, 227, 250, 0.06);
-        color: $lavenderWeb;
+        background-color: rgba(108, 122, 203, 0.1);
+        color: v-bind(lavenderWeb);
         border-radius: 6px;
 
         span {
@@ -387,7 +426,7 @@ export default {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background-color: $lavenderWeb;
+          background-color: v-bind(lavenderWeb);
           top: 2px;
           left: -16px;
         }
@@ -408,21 +447,22 @@ export default {
       }
     }
     .edit {
-      background-color: $spaceCadetLight;
+      color: v-bind(editBtnText);
+      background-color: v-bind(editBtnBg);
       &:hover {
-        background-color: $xiketic;
+        background-color: v-bind(editBtnBgHover);
       }
     }
     .delete {
-      background-color: $redSalsa;
+      background-color: v-bind(redSalsa);
       &:hover {
-        background-color: $lightCoral;
+        background-color: v-bind(lightCoral);
       }
     }
     .mark-paid {
-      background-color: $mediumSlateBlue;
+      background-color: v-bind(mediumSlateBlue);
       &:hover {
-        background-color: $mediumPurple;
+        background-color: v-bind(mediumPurple);
       }
     }
 
@@ -430,7 +470,7 @@ export default {
       opacity: 0.3;
       cursor: default;
       &:hover {
-        background-color: $mediumSlateBlue;
+        background-color: v-bind(mediumSlateBlue);
       }
     }
 
@@ -518,8 +558,8 @@ export default {
         align-items: center;
         justify-content: center;
 
-        background-color: rgba(223, 227, 250, 0.06);
-        color: $lavenderWeb;
+        background-color: rgba(108, 122, 203, 0.1);
+        color: v-bind(lavenderWeb);
         border-radius: 6px;
 
         span {
@@ -532,7 +572,7 @@ export default {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background-color: $lavenderWeb;
+          background-color: v-bind(lavenderWeb);
           top: 2px;
           left: -16px;
         }
@@ -551,7 +591,7 @@ export default {
   left: 0;
   padding: 22px 24px;
   width: 100%;
-  background-color: $spaceCadetDark;
+  background-color: v-bind(spaceCadetDark);
   @media (max-width: 600px) {
     display: flex;
   }
@@ -564,30 +604,40 @@ export default {
     transition: 0.2s ease;
   }
   .edit {
-    background-color: $spaceCadetLight;
+    color: v-bind(editBtnText);
+    background-color: v-bind(editBtnBg);
     &:hover {
-      background-color: $xiketic;
+      background-color: v-bind(editBtnBgHover);
     }
   }
   .delete {
-    background-color: $redSalsa;
+    background-color: v-bind(redSalsa);
     &:hover {
-      background-color: $lightCoral;
+      background-color: v-bind(lightCoral);
     }
   }
+
   .mark-paid {
-    background-color: $mediumSlateBlue;
+    background-color: v-bind(mediumSlateBlue);
     &:hover {
-      background-color: $mediumPurple;
+      background-color: v-bind(mediumPurple);
+    }
+  }
+
+  .mark-paid.disabled {
+    opacity: 0.3;
+    cursor: default;
+    &:hover {
+      background-color: v-bind(mediumSlateBlue);
     }
   }
 }
 .main-card {
-  background-color: $spaceCadetDark;
+  background-color: v-bind(spaceCadetDark);
   border-radius: 8px;
   padding: 48px;
   margin-bottom: 56px;
-  color: $lavenderWeb;
+  color: v-bind(lavenderWeb);
   @media (max-width: 500px) {
     padding: 24px;
   }
@@ -607,7 +657,7 @@ export default {
       margin-bottom: 8px;
 
       span {
-        color: #fff;
+        color: v-bind(autofillTextColor);
       }
     }
     .description {
@@ -626,6 +676,7 @@ export default {
   .contacts {
     display: flex;
     justify-content: space-between;
+    gap: 16px;
     flex-wrap: wrap;
     // @media (max-width: 700px) {
     //   flex-direction: column;
@@ -642,7 +693,7 @@ export default {
           font-weight: 700;
           font-size: 19px;
           line-height: 20px;
-          color: #fff;
+          color: v-bind(autofillTextColor);
         }
         margin-bottom: 32px;
       }
@@ -659,7 +710,7 @@ export default {
         font-weight: 700;
         font-size: 19px;
         line-height: 20px;
-        color: #fff;
+        color: v-bind(autofillTextColor);
         margin-bottom: 8px;
       }
       .adress {
@@ -673,7 +724,7 @@ export default {
 
   .price {
     padding: 32px 32px 8px 32px;
-    background-color: $spaceCadetLight;
+    background-color: v-bind(priceBlockBg);
     border-radius: 8px 8px 0px 0px;
     width: 100%;
     .table-title {
@@ -687,7 +738,7 @@ export default {
     .table-data td .data {
       font-weight: 700;
       font-size: 16px;
-      color: #fff;
+      color: v-bind(autofillTextColor);
       margin-bottom: 32px;
       @media (max-width: 400px) {
         margin-bottom: 12px;
@@ -697,7 +748,7 @@ export default {
       display: none;
       font-weight: 700;
       font-size: 15px;
-      color: $coolGrey;
+      color: v-bind(coolGrey);
       margin-bottom: 24px;
     }
     @media (max-width: 400px) {
@@ -715,7 +766,7 @@ export default {
     justify-content: space-between;
     align-items: center;
     padding: 32px;
-    background-color: $richBlack;
+    background-color: v-bind(totalAmountBg);
     border-radius: 0px 0px 8px 8px;
     color: #fff;
     @media (max-width: 400px) {

@@ -17,8 +17,9 @@ import {
 
 export default createStore({
   state: {
+    darkMode: true,
     stateInvoices: [],
-    invoiceForm: null,
+    invoiceForm: false,
     deleteModalActive: null,
     collectionLength: 0,
     itemsPerPage: 12,
@@ -31,6 +32,98 @@ export default createStore({
 
     //Applied filters
     filters: { Draft: false, Pending: false, Paid: false },
+  },
+  getters: {
+    white: () => {
+      return "#fff";
+    },
+    xiketic: () => {
+      return "rgba(20, 22, 37, 1)";
+    },
+    cultured: () => {
+      return "rgba(248, 248, 251, 1)";
+    },
+    lightCoral: () => {
+      return "rgba(255, 151, 151, 1)";
+    },
+    redSalsa: () => {
+      return "rgba(236, 87, 87, 1)";
+    },
+    richBlack: () => {
+      return "rgba(12, 14, 22, 1)";
+    },
+    glaucous: () => {
+      return "rgba(126, 136, 195, 1)";
+    },
+    coolGrey: () => {
+      return "rgba(136, 142, 176, 1)";
+    },
+    lavenderWeb: (state) => {
+      return state.darkMode
+        ? "rgba(223, 227, 250, 1)"
+        : "rgba(126, 136, 195, 1)";
+    },
+    spaceCadetLight: () => {
+      return "rgba(37, 41, 69, 1)";
+    },
+    spaceCadetDark: (state) => {
+      return state.darkMode ? "rgba(30, 33, 57, 1)" : "#fff";
+    },
+    mediumPurple: () => {
+      return "rgba(146, 119, 255, 1)";
+    },
+    mediumSlateBlue: () => {
+      return "rgba(124, 93, 250, 1)";
+    },
+    checkboxStyle: (state) => {
+      return state.darkMode ? "rgba(30, 33, 57, 1)" : "rgba(223, 227, 250, 1)";
+    },
+    inputBgStyle: (state) => {
+      return state.darkMode ? "rgba(30, 33, 57, 1)" : "#fff";
+    },
+    inputBorderStyle: (state) => {
+      return state.darkMode ? "rgba(37, 41, 69, 1)" : "rgba(223, 227, 250, 1)";
+    },
+    inputColorStyle: (state) => {
+      return state.darkMode ? "#fff" : "rgba(12, 14, 22, 1)";
+    },
+    paymentTermsBorderStyle: (state) => {
+      return state.darkMode ? "rgba(30, 33, 57, 1)" : "rgba(223, 227, 250, 1)";
+    },
+    addItemStyle: (state) => {
+      return state.darkMode ? "rgba(37, 41, 69, 1)" : "rgba(249, 250, 254, 1)";
+    },
+    addItemHoverStyle: (state) => {
+      return state.darkMode
+        ? "rgba(124, 93, 250, 1)"
+        : "rgba(223, 227, 250, 1)";
+    },
+    autofillTextColor: (state) => {
+      return state.darkMode ? "rgb(255, 255, 255)" : "rgba(12, 14, 22, 1)";
+    },
+    autofillBgColor: (state) => {
+      return !state.darkMode ? "rgb(255, 255, 255)" : "rgba(30, 33, 57, 1)";
+    },
+    editBtnBg: (state) => {
+      return state.darkMode ? "rgba(37, 41, 69, 1)" : "rgba(249, 250, 254, 1)";
+    },
+    editBtnText: (state) => {
+      return state.darkMode
+        ? "rgba(255, 255, 255, 1)"
+        : "rgba(126, 136, 195, 1)";
+    },
+    editBtnBgHover: (state) => {
+      return state.darkMode ? "rgba(20, 22, 37, 1)" : "rgba(223, 227, 250, 1)";
+    },
+    priceBlockBg: (state) => {
+      return state.darkMode ? "rgba(37, 41, 69, 1)" : "rgba(249, 250, 254, 1)";
+    },
+    totalAmountBg: (state) => {
+      return state.darkMode ? "rgba(12, 14, 22, 1)" : "rgba(55, 59, 83, 1)";
+    },
+    bottomPanelBg: (state) => {
+      return state.darkMode ? "rgba(20, 22, 37, 1)" : "#fff";
+    },
   },
   mutations: {
     TOGGLE_FORM(state) {
@@ -85,6 +178,9 @@ export default createStore({
     },
     TOGGLE_EDITING_MODE(state) {
       state.editingMode = !state.editingMode;
+    },
+    TOGGLE_DARK_MODE(state) {
+      state.darkMode = !state.darkMode;
     },
   },
   actions: {
@@ -171,12 +267,15 @@ export default createStore({
         startAt(this.lastDocSnapshot ? this.lastDocSnapshot : firstTimeStamp),
         limit(context.state.itemsPerPage)
       );
-      const querySnapshot = await getDocs(q);
+      let querySnapshot = await getDocs(q);
+      // console.log(querySnapshot.docs.length);
 
       //Сохраняем последний загруженный документ
       this.lastDocSnapshot =
         querySnapshot.docs[context.state.stateInvoices.length - 1];
       if (querySnapshot.docs.length < 1) {
+        // console.log(context.state.stateInvoices);
+
         context.state.invoicesIsLoading = false;
         context.state.showPlaceholder = true;
       }
@@ -204,6 +303,7 @@ export default createStore({
             total: doc.data().total,
             timestamp: doc.data().timestamp,
           };
+
           context.commit("GET_INVOICES", data);
           context.state.invoicesIsLoading = false;
 

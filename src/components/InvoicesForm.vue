@@ -9,14 +9,33 @@
         v-if="animationIsReady"
         @submit.prevent="submitForm"
         class="invoice-content"
+        :style="
+          this.darkMode
+            ? { 'background-color': xiketic }
+            : { 'background-color': white }
+        "
       >
         <loading-animation v-if="loading"></loading-animation>
         <div @click="closeForm" class="go-back">
           <img src="../assets/icon-arrow-left.svg" alt="" />
-          <span>Go Back</span>
+          <span :style="this.darkMode ? { color: white } : { color: richBlack }"
+            >Go Back</span
+          >
         </div>
-        <h1 v-if="!editingMode" class="form-title">New Invoice</h1>
-        <h1 v-else class="form-title">Edit Invoice</h1>
+        <h1
+          v-if="!editingMode"
+          class="form-title"
+          :style="this.darkMode ? { color: white } : { color: richBlack }"
+        >
+          New Invoice
+        </h1>
+        <h1
+          v-else
+          class="form-title"
+          :style="this.darkMode ? { color: white } : { color: richBlack }"
+        >
+          Edit Invoice
+        </h1>
         <!-- Bill from -->
 
         <div class="bill-from">
@@ -122,8 +141,9 @@
             <label @click="dateFormatter" for="createdAt">Invoice Date</label>
             <Datepicker
               v-model="datePicked"
-              dark
+              :dark="darkMode"
               autoApply
+              :clearable="false"
               :autoPosition="true"
               :enableTimePicker="false"
               :format="dateFormatter"
@@ -135,8 +155,23 @@
             <div class="select-title">
               <span>Payment Terms</span>
             </div>
-            <div class="payment-terms">
-              <div v-show="isSelectOpened" class="select-options">
+            <div
+              class="payment-terms"
+              :style="this.darkMode ? { color: white } : { color: richBlack }"
+            >
+              <div
+                v-show="isSelectOpened"
+                class="select-options"
+                :style="
+                  this.darkMode
+                    ? { 'background-color': spaceCadetLight, color: white }
+                    : {
+                        'background-color': white,
+                        color: '#1E2139',
+                        'box-shadow': '0px 10px 20px rgba(72, 84, 159, 0.25)',
+                      }
+                "
+              >
                 <div @click="setPaymentTerm" data-term="1" class="option">
                   Net 1 Day
                 </div>
@@ -203,7 +238,10 @@
             </div>
             <div class="total">
               <label class="total-label">Total</label>
-              <div class="total-price">
+              <div
+                class="total-price"
+                :style="this.darkMode ? { color: white } : { color: richBlack }"
+              >
                 ${{
                   (item.total = validated(item.qty) * validated(item.price))
                 }}
@@ -275,7 +313,7 @@ import {
 import Datepicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 import { uid } from "uid";
-import { mapActions, mapMutations, mapState } from "vuex";
+import { mapActions, mapMutations, mapState, mapGetters } from "vuex";
 export default {
   components: { Datepicker, LoadingAnimation },
   data() {
@@ -386,7 +424,9 @@ export default {
 
       setTimeout(() => {
         this.TOGGLE_FORM();
-        this.TOGGLE_EDITING_MODE();
+        if (this.editingMode) {
+          this.TOGGLE_EDITING_MODE();
+        }
       }, 600);
     },
     addItem() {
@@ -572,18 +612,6 @@ export default {
         let validated = data.split("").slice(1).join("");
         data = validated;
       }
-      // if (data.length > 0) {
-      //   for (let i = 0; i < data.split("").length; i++) {
-      //     if (data.split("")[i] != +data.split("")[i]) {
-      //       let filtred = data
-      //         .split("")
-      //         .filter((item) => item !== data.split("")[i]);
-
-      //       data = filtred.join("");
-
-      //     }
-      //   }
-      // }
       return data;
     },
   },
@@ -603,10 +631,52 @@ export default {
     },
   },
   computed: {
-    ...mapState(["editingMode", "currentInvoice"]),
+    ...mapState(["editingMode", "currentInvoice", "darkMode"]),
+    ...mapGetters([
+      "white",
+      "xiketic",
+      "cultured",
+      "lightCoral",
+      "redSalsa",
+      "richBlack",
+      "glaucous",
+      "coolGrey",
+      "lavenderWeb",
+      "spaceCadetLight",
+      "spaceCadetDark",
+      "mediumPurple",
+      "mediumSlateBlue",
+      "inputBgStyle",
+      "inputBorderStyle",
+      "inputColorStyle",
+      "paymentTermsBorderStyle",
+      "addItemStyle",
+      "addItemHoverStyle",
+      "autofillTextColor",
+      "autofillBgColor",
+      "bottomPanelBg",
+    ]),
   },
 
   created() {
+    // //Dynamic DatePicker theme changer -->
+    // window.addEventListener("click", (e) => {
+    //   console.log(e.target);
+    //   if (e.target.classList.contains("dp__input")) {
+    //     if (
+    //       document.querySelector(".invoice-content").style.backgroundColor ==
+    //       "rgb(255, 255, 255)"
+    //     ) {
+    //       setTimeout(() => {
+    //         document.querySelector(".dp__menu").style.opacity = "1";
+    //       }, 1000);
+    //       document.querySelector(".dp__menu").style.backgroundColor = "#fff";
+    //     }
+    //     document.querySelector(".dp__menu").style.opacity = "1";
+    //   }
+    // });
+    // // <--
+
     if (this.editingMode) {
       this.invoiceId = this.currentInvoice.invoiceId;
       this.paymentDue = this.currentInvoice.paymentDue;
@@ -671,7 +741,6 @@ export default {
   width: calc(100% - 104px);
   height: 100vh;
   background-color: rgba(0, 0, 0, 0.7);
-  color: #fff;
 
   @media (max-width: 960px) {
     padding-top: 80px;
@@ -680,7 +749,6 @@ export default {
   }
 
   form {
-    background-color: $xiketic;
     max-width: 620px;
     border-radius: 0 20px 20px 0;
     padding: 56px 56px 32px 56px;
@@ -709,7 +777,7 @@ export default {
     .bill-to-title {
       font-weight: 700;
       font-size: 15px;
-      color: $mediumSlateBlue;
+      color: v-bind(mediumSlateBlue);
       margin-bottom: 24px;
     }
 
@@ -727,7 +795,7 @@ export default {
       display: block;
       font-weight: 400;
       font-size: 15px;
-      color: $lavenderWeb;
+      color: v-bind(lavenderWeb);
       margin-bottom: 12px;
     }
 
@@ -761,18 +829,17 @@ export default {
       width: 100%;
       padding: 0px 16px;
       border-radius: 4px;
-      border: 1px solid $spaceCadetLight;
-      background-color: $spaceCadetDark;
+      border: 1px solid v-bind(inputBorderStyle);
+      background-color: v-bind(inputBgStyle);
+      color: v-bind(inputColorStyle);
 
       font-weight: 700;
       font-size: 16px;
 
-      color: #fff;
-
       &:hover,
       :focus,
       :active {
-        border: 1px solid $mediumSlateBlue;
+        border: 1px solid v-bind(mediumSlateBlue);
       }
     }
 
@@ -783,7 +850,8 @@ export default {
       transition: background-color 5000s ease-in-out 0s;
     }
     input:-webkit-autofill {
-      -webkit-text-fill-color: rgb(255, 255, 255) !important;
+      -webkit-text-fill-color: v-bind(autofillTextColor) !important;
+      -webkit-box-shadow: inset 0 0 0 50px v-bind(autofillBgColor);
     }
     .payment-terms {
       height: 48px;
@@ -793,10 +861,8 @@ export default {
       justify-content: space-between;
       padding: 0px 16px;
       border-radius: 4px;
-      border: 1px solid $spaceCadetLight;
-      background-color: $spaceCadetDark;
-
-      color: #fff;
+      border: 1px solid v-bind(inputBorderStyle);
+      background-color: v-bind(inputBgStyle);
 
       .custom-select {
         width: 100%;
@@ -835,7 +901,7 @@ export default {
     }
 
     .custom-select-dropdown {
-      color: #fff;
+      color: v-bind(inputColorStyle);
       font-weight: 700;
       font-size: 16px;
     }
@@ -858,11 +924,10 @@ export default {
   .select-options {
     display: flex;
     flex-direction: column;
-    color: #fff;
 
     font-weight: 700;
     font-size: 16px;
-    background-color: $spaceCadetLight;
+
     // padding: 16px;
     border-radius: 8px;
     width: 100%;
@@ -877,10 +942,10 @@ export default {
       cursor: pointer;
 
       &:not(:last-child) {
-        border-bottom: 1px solid $spaceCadetDark;
+        border-bottom: 1px solid v-bind(paymentTermsBorderStyle);
       }
       &:hover {
-        color: $mediumPurple;
+        color: v-bind(mediumPurple);
       }
 
       transition: 0.2s;
@@ -890,9 +955,6 @@ export default {
   //Date picker
   .dp__main input {
     padding: 0px 36px;
-    &:hover {
-      border: 1px solid $spaceCadetLight;
-    }
   }
 
   .dp__input_wrap {
@@ -901,11 +963,11 @@ export default {
   }
 
   .dp__input_wrap .dp__input_icon path {
-    fill: $glaucous;
+    fill: v-bind(glaucous);
   }
 
   .dp__clear_icon {
-    color: $glaucous;
+    color: v-bind(glaucous);
   }
 
   .list-title {
@@ -958,7 +1020,7 @@ export default {
     cursor: pointer;
 
     &:hover svg path {
-      fill: $redSalsa;
+      fill: v-bind(redSalsa);
       transition: 0.2s;
     }
   }
@@ -968,8 +1030,9 @@ export default {
     width: 100%;
     height: 48px;
     border-radius: 24px;
-    background-color: $spaceCadetLight;
+
     color: #fff;
+    background-color: v-bind(addItemStyle);
     margin-bottom: 45px;
 
     font-weight: 700;
@@ -979,9 +1042,9 @@ export default {
     cursor: pointer;
     transition: 0.2s;
 
-    color: $lavenderWeb;
+    color: v-bind(lavenderWeb);
     &:hover {
-      background-color: $mediumSlateBlue;
+      background-color: v-bind(addItemHoverStyle);
     }
   }
 
@@ -993,7 +1056,7 @@ export default {
       bottom: 0;
       left: 0;
       z-index: 2;
-      background-color: $xiketic;
+      background-color: v-bind(bottomPanelBg);
       padding: 12px 6px;
       width: 100%;
     }
@@ -1003,7 +1066,7 @@ export default {
       height: 48px;
       border-radius: 24px;
       background-color: #f9fafe;
-      color: $glaucous;
+      color: v-bind(glaucous);
 
       font-weight: 700;
 
@@ -1013,7 +1076,7 @@ export default {
       transition: 0.2s;
 
       &:hover {
-        background-color: $spaceCadetLight;
+        background-color: v-bind(spaceCadetLight);
         color: #fff;
       }
 
@@ -1026,7 +1089,8 @@ export default {
       height: 48px;
       border-radius: 24px;
       background-color: #373b53;
-      color: $coolGrey;
+
+      color: v-bind(coolGrey);
 
       font-weight: 700;
 
@@ -1036,7 +1100,7 @@ export default {
       transition: 0.2s;
 
       &:hover {
-        color: $lavenderWeb;
+        color: v-bind(lavenderWeb);
       }
       @media (max-width: 450px) {
         padding: 0px 16px;
@@ -1047,8 +1111,8 @@ export default {
       padding: 0px 24px;
       height: 48px;
       border-radius: 24px;
-      background-color: $spaceCadetLight;
-      color: $lavenderWeb;
+      background-color: v-bind(spaceCadetLight);
+      color: v-bind(lavenderWeb);
 
       font-weight: 700;
 
@@ -1058,7 +1122,7 @@ export default {
       transition: 0.2s;
 
       &:hover {
-        background-color: $spaceCadetDark;
+        background-color: v-bind(spaceCadetDark);
       }
       @media (max-width: 450px) {
         padding: 0px 16px;
@@ -1069,7 +1133,7 @@ export default {
       height: 48px;
       border-radius: 24px;
       margin-left: 8px;
-      background-color: $mediumSlateBlue;
+      background-color: v-bind(mediumSlateBlue);
       color: #fff;
 
       font-weight: 700;
@@ -1080,7 +1144,7 @@ export default {
       transition: 0.2s;
 
       &:hover {
-        background-color: $mediumPurple;
+        background-color: v-bind(mediumPurple);
       }
       @media (max-width: 450px) {
         padding: 0px 16px;
@@ -1117,7 +1181,7 @@ export default {
   .alert {
     font-weight: 600;
     font-size: 14px;
-    color: $redSalsa;
+    color: v-bind(redSalsa);
     margin-bottom: 32px;
   }
 }
@@ -1127,9 +1191,18 @@ export default {
   --dp-background-color: #252945;
   --dp-hover-color: #7c5dfa;
   --dp-primary-color: #7c5dfa;
-  --dp-secondary-color: #343854;
+  --dp-secondary-color: "#343854";
   --dp-icon-color: #fff;
   --dp-hover-icon-color: #fff;
+}
+.dp__theme_light {
+  --dp-background-color: #ffffff;
+  --dp-hover-color: #7c5dfa;
+  --dp-primary-color: #7c5dfa;
+  --dp-secondary-color: "#343854";
+  --dp-icon-color: #fff;
+  --dp-hover-icon-color: #fff;
+  --dp-hover-text-color: #ffffff;
 }
 
 // Form transition

@@ -24,7 +24,7 @@
 </template>
 
 <script>
-import { mapActions, mapMutations, mapState } from "vuex";
+import { mapActions, mapMutations, mapState, mapGetters } from "vuex";
 import router from "../router/router.js";
 export default {
   data() {
@@ -55,6 +55,21 @@ export default {
   },
   computed: {
     ...mapState(["currentInvoice"]),
+    ...mapGetters([
+      "white",
+      "xiketic",
+      "cultured",
+      "lightCoral",
+      "redSalsa",
+      "richBlack",
+      "glaucous",
+      "coolGrey",
+      "lavenderWeb",
+      "spaceCadetLight",
+      "spaceCadetDark",
+      "mediumPurple",
+      "mediumSlateBlue",
+    ]),
   },
   mounted() {
     this.animationIsReady = true;
@@ -76,7 +91,7 @@ export default {
   background-color: rgba(0, 0, 0, 0.6);
 
   .modal-card {
-    background-color: $spaceCadetDark;
+    background-color: v-bind(spaceCadetDark);
     // margin: calc(40vh);
 
     max-width: 480px;
@@ -97,7 +112,7 @@ export default {
       font-weight: 400;
       font-size: 15px;
       line-height: 22px;
-      color: $lavenderWeb;
+      color: v-bind(lavenderWeb);
       margin-bottom: 16px;
     }
     .buttons {
@@ -113,18 +128,18 @@ export default {
         border-radius: 24px;
         font-weight: 700;
         font-size: 15px;
-        color: $lavenderWeb;
+        color: v-bind(lavenderWeb);
         transition: 0.3s ease;
         &:nth-child(1) {
-          background-color: $spaceCadetLight;
+          background-color: v-bind(spaceCadetLight);
           &:hover {
-            background-color: $richBlack;
+            background-color: v-bind(richBlack);
           }
         }
         &:nth-child(2) {
-          background-color: $redSalsa;
+          background-color: v-bind(redSalsa);
           &:hover {
-            background-color: $lightCoral;
+            background-color: v-bind(lightCoral);
           }
         }
       }

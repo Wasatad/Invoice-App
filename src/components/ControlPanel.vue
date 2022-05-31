@@ -1,9 +1,30 @@
 <template>
-  <div class="control-panel">
+  <div
+    :style="
+      this.darkMode
+        ? { 'background-color': spaceCadetDark }
+        : { 'background-color': '#373B53' }
+    "
+    class="control-panel"
+  >
     <img class="logo" src="../assets/logo.svg" alt="logo" />
+
     <div class="info">
       <div class="theme-container">
-        <img class="theme-icon" src="../assets/icon-sun.svg" alt="sun" />
+        <img
+          v-if="darkMode"
+          @click="TOGGLE_DARK_MODE"
+          class="theme-icon"
+          src="../assets/icon-sun.svg"
+          alt="sun"
+        />
+        <img
+          v-if="!darkMode"
+          @click="TOGGLE_DARK_MODE"
+          class="theme-icon"
+          src="../assets/icon-moon.svg"
+          alt="sun"
+        />
       </div>
 
       <img src="../assets/image-avatar.jpg" alt="" class="avatar" />
@@ -12,7 +33,30 @@
 </template>
 
 <script>
-export default {};
+import { mapMutations, mapGetters, mapState } from "vuex";
+
+export default {
+  methods: {
+    ...mapMutations(["TOGGLE_DARK_MODE"]),
+  },
+  computed: {
+    ...mapGetters([
+      "xiketic",
+      "cultured",
+      "lightCoral",
+      "redSalsa",
+      "richBlack",
+      "glaucous",
+      "coolGrey",
+      "lavenderWeb",
+      "spaceCadetLight",
+      "spaceCadetDark",
+      "mediumPurple",
+      "mediumSlateBlue",
+    ]),
+    ...mapState(["darkMode"]),
+  },
+};
 </script>
 
 <style scoped lang="scss">
@@ -22,7 +66,7 @@ export default {};
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  background-color: $spaceCadetDark;
+  background-color: v-bind(spaceCadetDark);
   height: 100vh;
   border-radius: 0 30px 0 0;
   z-index: 4;
@@ -61,7 +105,7 @@ export default {};
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    background-color: $spaceCadetDark;
+    background-color: v-bind(spaceCadetDark);
     height: 80px;
     width: 100%;
     border-radius: 0 0 0 0;

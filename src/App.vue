@@ -1,5 +1,12 @@
 <template>
-  <div class="app-content">
+  <div
+    class="app-content"
+    :style="
+      this.darkMode
+        ? { 'background-color': xiketic }
+        : { 'background-color': cultured }
+    "
+  >
     <DeleteModal v-if="deleteModalActive" />
 
     <InvoiceForm v-if="invoiceForm" />
@@ -12,15 +19,23 @@
 </template>
 
 <script>
-import { mapState } from "vuex";
+import { mapState, mapGetters } from "vuex";
 import ControlPanel from "./components/ControlPanel.vue";
 import InvoiceForm from "./components/InvoicesForm.vue";
 import DeleteModal from "./components/DeleteModal.vue";
 
 export default {
   components: { ControlPanel, InvoiceForm, DeleteModal },
+
   computed: {
-    ...mapState(["invoiceForm", "deleteModalActive"]),
+    ...mapState(["invoiceForm", "deleteModalActive", "darkMode"]),
+    ...mapGetters(["xiketic", "cultured"]),
+  },
+  methods: {
+    // changeDatePickerTheme() {
+    //   console.log(1);
+    //   return 1;
+    // },
   },
 };
 </script>
@@ -60,7 +75,6 @@ a:not([class]) {
 }
 
 #app {
-  background-color: $xiketic;
   min-height: 100vh;
 }
 
@@ -68,6 +82,7 @@ a:not([class]) {
   display: flex;
   flex-direction: row;
 
+  min-height: 100vh;
   .content {
     max-width: 760px;
     width: 100%;

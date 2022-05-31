@@ -1,18 +1,42 @@
 <template>
   <div class="header">
     <div class="title-block">
-      <div class="title">Invoices</div>
-      <div class="info">
+      <div
+        class="title"
+        :style="this.darkMode ? { color: white } : { color: richBlack }"
+      >
+        Invoices
+      </div>
+      <div
+        class="info"
+        :style="this.darkMode ? { color: white } : { color: coolGrey }"
+      >
         <span>There are </span>{{ collectionLength }} total invoices
       </div>
     </div>
     <div v-click-away="hideFilterMenu" class="controls">
       <div class="filter">
         <div @click="toggleFilterMenu" class="filter-title">
-          <span class="filter-dropdown">Filter<span> by status</span></span>
+          <span
+            class="filter-dropdown"
+            :style="this.darkMode ? { color: white } : { color: richBlack }"
+            >Filter<span> by status</span></span
+          >
           <img class="arrow" src="../assets/icon-arrow-down.svg" alt="" />
         </div>
-        <form v-show="isFilterMenuOpened" class="filters">
+        <form
+          v-show="isFilterMenuOpened"
+          class="filters"
+          :style="
+            this.darkMode
+              ? { 'background-color': spaceCadetLight, color: white }
+              : {
+                  'background-color': white,
+                  color: '#1E2139',
+                  'box-shadow': '0px 10px 20px rgba(72, 84, 159, 0.25)',
+                }
+          "
+        >
           <div>
             <input
               @input="updateFilters"
@@ -63,18 +87,55 @@
       v-for="invoice in stateInvoices"
       :key="invoice.invoiceId"
       class="item"
+      :style="
+        this.darkMode
+          ? { 'background-color': spaceCadetDark }
+          : {
+              'background-color': white,
+
+              'box-shadow': '0px 10px 10px -10px rgba(72, 84, 159, 0.100397)',
+            }
+      "
     >
       <div class="item-info">
-        <div class="id">
+        <div
+          class="id"
+          :style="this.darkMode ? { color: white } : { color: richBlack }"
+        >
           <span class="hashtag">#</span>{{ invoice.invoiceId }}
         </div>
-        <div class="date">Due {{ dateFormatter(invoice.paymentDue) }}</div>
-        <div class="price">$ {{ invoice.total }}</div>
-        <div class="name">{{ invoice.clientName }}</div>
+        <div
+          class="date"
+          :style="this.darkMode ? { color: lavenderWeb } : { color: glaucous }"
+        >
+          Due {{ dateFormatter(invoice.paymentDue) }}
+        </div>
+        <div
+          class="price"
+          :style="this.darkMode ? { color: white } : { color: richBlack }"
+        >
+          $ {{ invoice.total }}
+        </div>
+        <div
+          class="name"
+          :style="this.darkMode ? { color: lavenderWeb } : { color: '#858BB2' }"
+        >
+          {{ invoice.clientName }}
+        </div>
       </div>
       <div class="price-status">
-        <div class="name">{{ invoice.clientName }}</div>
-        <div class="price">$ {{ invoice.total }}</div>
+        <div
+          class="name"
+          :style="this.darkMode ? { color: lavenderWeb } : { color: '#858BB2' }"
+        >
+          {{ invoice.clientName }}
+        </div>
+        <div
+          class="price"
+          :style="this.darkMode ? { color: white } : { color: richBlack }"
+        >
+          $ {{ invoice.total }}
+        </div>
         <div
           :class="[
             { paid: invoice.status == 'Paid' },
@@ -101,7 +162,7 @@
 </template>
 
 <script>
-import { mapActions, mapMutations, mapState } from "vuex";
+import { mapActions, mapMutations, mapState, mapGetters } from "vuex";
 import InfiniteScroll from "infinite-loading-vue3";
 import LoadingAnimation from "./LoadingAnimation.vue";
 
@@ -128,6 +189,23 @@ export default {
       "collectionLength",
       "showPlaceholder",
       "invoicesIsLoading",
+      "darkMode",
+    ]),
+    ...mapGetters([
+      "white",
+      "xiketic",
+      "cultured",
+      "lightCoral",
+      "redSalsa",
+      "richBlack",
+      "glaucous",
+      "coolGrey",
+      "lavenderWeb",
+      "spaceCadetLight",
+      "spaceCadetDark",
+      "mediumPurple",
+      "mediumSlateBlue",
+      "checkboxStyle",
     ]),
   },
 
@@ -204,6 +282,7 @@ export default {
       this.GET_INVOICES("addMoreInvoices");
     },
   },
+  mounted() {},
   created() {
     this.GET_INVOICES();
 
@@ -240,7 +319,6 @@ export default {
   }
 
   .title {
-    color: #fff;
     font-size: 40px;
     font-weight: 700;
     margin-bottom: 8px;
@@ -295,8 +373,7 @@ export default {
       display: flex;
       flex-direction: column;
       gap: 12px;
-      color: #fff;
-      background-color: $spaceCadetLight;
+
       padding: 24px;
       border-radius: 8px;
       width: 192px;
@@ -330,8 +407,8 @@ export default {
         height: 16px;
         flex-shrink: 0;
         flex-grow: 0;
-        background-color: $spaceCadetDark;
-        border: 1px solid $spaceCadetDark;
+        background-color: v-bind(checkboxStyle);
+        border: 1px solid v-bind(checkboxStyle);
 
         border-radius: 2px;
         margin-right: 13px;
@@ -340,12 +417,12 @@ export default {
         background-size: 70% 50%;
       }
       .custom-checkbox:checked + label::before {
-        background-color: $mediumSlateBlue;
+        background-color: v-bind(mediumSlateBlue);
         background-image: url("../assets/icon-check.svg");
       }
 
       .custom-checkbox:not(:disabled):not(:checked) + label:hover::before {
-        border-color: $mediumSlateBlue;
+        border-color: v-bind(mediumSlateBlue);
       }
     }
 
@@ -359,7 +436,7 @@ export default {
   .new-invoice {
     display: flex;
     align-items: center;
-    background-color: $mediumSlateBlue;
+    background-color: v-bind(mediumSlateBlue);
     color: #fff;
     font-weight: 700;
     font-size: 16px;
@@ -386,7 +463,7 @@ export default {
       }
     }
     &:hover {
-      background-color: $mediumPurple;
+      background-color: v-bind(mediumPurple);
     }
   }
 }
@@ -401,14 +478,13 @@ export default {
   border-radius: 8px;
   color: #fff;
   justify-content: space-between;
-  background-color: $spaceCadetDark;
-  border: 1px solid $spaceCadetDark;
+  border: 1px solid v-bind(spaceCadetDark);
   margin-bottom: 16px;
   cursor: pointer;
   text-decoration: none;
   transition: 0.3s;
   &:hover {
-    border: 1px solid $mediumSlateBlue;
+    border: 1px solid v-bind(mediumSlateBlue);
   }
   @media (max-width: 720px) {
     padding: 24px;
@@ -417,15 +493,18 @@ export default {
   .item-info {
     display: flex;
     justify-content: flex-start;
+    align-items: center;
     gap: 40px;
     @media (max-width: 720px) {
       flex-direction: column;
+      align-items: flex-start;
       gap: 10px;
     }
 
     .name {
       font-weight: 400;
       font-size: 15px;
+      line-height: 0.2;
       @media (max-width: 720px) {
         display: none;
       }
@@ -443,8 +522,9 @@ export default {
     .id {
       font-weight: 700;
       font-size: 15px;
+      text-transform: uppercase;
       .hashtag {
-        color: $coolGrey;
+        color: v-bind(coolGrey);
       }
 
       @media (max-width: 720px) {
@@ -455,7 +535,6 @@ export default {
     .date {
       font-weight: 400;
       font-size: 15px;
-      color: $lavenderWeb;
     }
   }
 
@@ -580,8 +659,8 @@ export default {
         align-items: center;
         justify-content: center;
 
-        background-color: rgba(223, 227, 250, 0.06);
-        color: $lavenderWeb;
+        background-color: rgba(108, 122, 203, 0.1);
+        color: v-bind(lavenderWeb);
         border-radius: 6px;
 
         span {
@@ -594,7 +673,7 @@ export default {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background-color: $lavenderWeb;
+          background-color: v-bind(lavenderWeb);
           top: 2px;
           left: -16px;
         }
@@ -633,7 +712,7 @@ export default {
   }
 
   .empty-description {
-    color: $lavenderWeb;
+    color: v-bind(lavenderWeb);
     font-weight: 400;
     font-size: 16px;
     max-width: 250px;
@@ -644,29 +723,4 @@ export default {
     }
   }
 }
-
-//Loading spinner
-// .spinner {
-//   border: 3px dotted $lavenderWeb !important;
-
-//   height: 3rem !important;
-//   width: 3rem !important;
-
-//   &::before {
-//     width: 0 !important;
-//   }
-// }
-
-// .swal2-popup {
-//   background-color: $spaceCadetLight !important;
-//   color: #fff !important;
-// }
-
-// .swal2-content {
-//   color: #fff !important;
-// }
-
-// .swal2-container {
-//   background-color: rgba(0, 0, 0, 0.4) !important;
-// }
 </style>
