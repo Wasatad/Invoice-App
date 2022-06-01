@@ -19,7 +19,7 @@
       </div>
     </div>
     <div class="right">
-      <!-- Start -- Double for mobile version -->
+      <!-- Start -- Duplicate block for mobile version -->
       <div
         :class="[
           { paid: currentInvoice.status == 'Paid' },
@@ -31,7 +31,7 @@
           <span>{{ currentInvoice.status }}</span>
         </div>
       </div>
-      <!-- End -- Double for mobile version -->
+      <!-- End -- Duplicate block -->
       <button @click="toggleEditingMode" class="edit">Edit</button>
       <button @click="deleteInvoice" class="delete">Delete</button>
       <button
@@ -155,7 +155,7 @@
 </template>
 
 <script>
-import { mapMutations, mapState, mapGetters } from "vuex";
+import { mapMutations, mapActions, mapState, mapGetters } from "vuex";
 import db from "../firebase/firebaseInit";
 import { doc, increment, updateDoc } from "firebase/firestore";
 
@@ -177,6 +177,7 @@ export default {
       "TOGGLE_FORM",
       "TOGGLE_MODAL",
     ]),
+    ...mapActions(["GET_INVOICES"]),
 
     getCurrentInvoice() {
       this.SET_CURRENT_INVOICE(this.$route.params.invoiceId);
@@ -242,6 +243,7 @@ export default {
 
       const serialObj = JSON.stringify(this.currentInvoice);
       localStorage.setItem("currentInvoice", serialObj);
+      // this.GET_INVOICES();
     },
   },
   computed: {
@@ -678,9 +680,7 @@ export default {
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
-    // @media (max-width: 700px) {
-    //   flex-direction: column;
-    // }
+
     .dates {
       .invoice-date,
       .payment-due {

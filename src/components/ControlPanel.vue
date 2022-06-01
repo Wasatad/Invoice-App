@@ -41,6 +41,7 @@ export default {
   },
   computed: {
     ...mapGetters([
+      //CSS styles
       "xiketic",
       "cultured",
       "lightCoral",

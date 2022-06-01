@@ -31,12 +31,6 @@ export default {
     ...mapState(["invoiceForm", "deleteModalActive", "darkMode"]),
     ...mapGetters(["xiketic", "cultured"]),
   },
-  methods: {
-    // changeDatePickerTheme() {
-    //   console.log(1);
-    //   return 1;
-    // },
-  },
 };
 </script>
 

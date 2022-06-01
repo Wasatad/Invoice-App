@@ -35,16 +35,21 @@ export default {
   },
   methods: {
     ...mapActions(["DELETE_INVOICE"]),
-    ...mapMutations(["TOGGLE_MODAL"]),
+    ...mapMutations(["TOGGLE_MODAL", "SET_DELETION_RULE"]),
     async confirmDelete() {
-      this.btnAnimation = true;
-      await this.DELETE_INVOICE();
-      this.btnAnimation = false;
-      this.animationIsReady = false;
-      setTimeout(() => {
-        this.TOGGLE_MODAL();
-        router.push({ name: "InvoicesList" });
-      }, 600);
+      //Check if user allowed to delete invoice
+      if (localStorage.getItem(this.currentInvoice.invoiceId)) {
+        this.btnAnimation = true;
+        await this.DELETE_INVOICE();
+        this.btnAnimation = false;
+        this.animationIsReady = false;
+        setTimeout(() => {
+          this.TOGGLE_MODAL();
+          router.push({ name: "InvoicesList" });
+        }, 600);
+      } else {
+        alert("Sorry! You can delete invoice only if you add it ;)");
+      }
     },
     cancelDelete() {
       this.animationIsReady = false;
@@ -69,9 +74,14 @@ export default {
       "spaceCadetDark",
       "mediumPurple",
       "mediumSlateBlue",
+      "autofillTextColor",
+      "editBtnBg",
+      "editBtnText",
+      "editBtnBgHover",
     ]),
   },
   mounted() {
+    window.scrollTo(0, 0);
     this.animationIsReady = true;
   },
 };
@@ -92,7 +102,6 @@ export default {
 
   .modal-card {
     background-color: v-bind(spaceCadetDark);
-    // margin: calc(40vh);
 
     max-width: 480px;
     padding: 46px;
@@ -106,6 +115,7 @@ export default {
       font-weight: 700;
       font-size: 30px;
       margin-bottom: 16px;
+      color: v-bind(autofillTextColor);
     }
 
     .description {
@@ -128,12 +138,12 @@ export default {
         border-radius: 24px;
         font-weight: 700;
         font-size: 15px;
-        color: v-bind(lavenderWeb);
+        color: v-bind(editBtnText);
         transition: 0.3s ease;
         &:nth-child(1) {
-          background-color: v-bind(spaceCadetLight);
+          background-color: v-bind(editBtnBg);
           &:hover {
-            background-color: v-bind(richBlack);
+            background-color: v-bind(editBtnBgHover);
           }
         }
         &:nth-child(2) {
@@ -164,6 +174,7 @@ export default {
     justify-content: center;
     flex-direction: row-reverse;
     gap: 8px;
+    color: #fff;
   }
   .lds-ring div {
     box-sizing: border-box;

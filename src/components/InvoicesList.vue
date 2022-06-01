@@ -2,6 +2,7 @@
   <div class="header">
     <div class="title-block">
       <div
+        @click="loadMoreInvoices"
         class="title"
         :style="this.darkMode ? { color: white } : { color: richBlack }"
       >
@@ -44,6 +45,7 @@
               type="checkbox"
               class="custom-checkbox"
               name="Draft"
+              :checked="stateFilters.Draft"
             />
             <label for="draft">Draft</label>
           </div>
@@ -54,6 +56,7 @@
               type="checkbox"
               class="custom-checkbox"
               name="Pending"
+              :checked="stateFilters.Pending"
             />
             <label for="pending">Pending</label>
           </div>
@@ -64,6 +67,7 @@
               type="checkbox"
               class="custom-checkbox"
               name="Paid"
+              :checked="stateFilters.Paid"
             />
             <label for="paid">Paid</label>
           </div>
@@ -77,7 +81,9 @@
       </button>
     </div>
   </div>
-  <infinite-scroll @infinite-scroll="loadMoreInvoices" :noResult="noResult">
+
+  <!--Start Invoices List-->
+  <div id="listItem" @click="loadMoreInvoices">
     <loading-animation v-if="invoicesIsLoading"></loading-animation>
     <router-link
       :to="{
@@ -150,7 +156,10 @@
         </div>
       </div>
     </router-link>
-  </infinite-scroll>
+  </div>
+  <div class="trigger" ref="trigger">&nbsp;</div>
+  <!--End Invoices List-->
+
   <div v-if="showPlaceholder" class="empty-placeholder">
     <img src="../assets/illustration-empty.svg" alt="" />
     <div class="empty-title">There is nothing here</div>
@@ -163,11 +172,10 @@
 
 <script>
 import { mapActions, mapMutations, mapState, mapGetters } from "vuex";
-import InfiniteScroll from "infinite-loading-vue3";
 import LoadingAnimation from "./LoadingAnimation.vue";
 
 export default {
-  components: { InfiniteScroll, LoadingAnimation },
+  components: { LoadingAnimation },
   data() {
     return {
       filters: { Draft: false, Pending: false, Paid: false },
@@ -184,13 +192,14 @@ export default {
     };
   },
   computed: {
-    ...mapState([
-      "stateInvoices",
-      "collectionLength",
-      "showPlaceholder",
-      "invoicesIsLoading",
-      "darkMode",
-    ]),
+    ...mapState({
+      stateInvoices: "stateInvoices",
+      collectionLength: "collectionLength",
+      showPlaceholder: "showPlaceholder",
+      invoicesIsLoading: "invoicesIsLoading",
+      darkMode: "darkMode",
+      stateFilters: "filters",
+    }),
     ...mapGetters([
       "white",
       "xiketic",
@@ -206,6 +215,7 @@ export default {
       "mediumPurple",
       "mediumSlateBlue",
       "checkboxStyle",
+      "autofillTextColor",
     ]),
   },
 
@@ -274,7 +284,6 @@ export default {
       }
       const year = date.getFullYear();
 
-      // console.log(`${day} ${month()} ${year}`);
       return `${day} ${month()} ${year}`;
     },
 
@@ -282,16 +291,16 @@ export default {
       this.GET_INVOICES("addMoreInvoices");
     },
   },
-  mounted() {},
-  created() {
+  mounted() {
     this.GET_INVOICES();
-
-    window.onscroll = () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
-        this.GET_INVOICES("addMoreInvoices");
-        window.scrollBy(0, -1);
-      }
+    let observerOptions = {
+      threshold: 0.5,
     };
+    let observer = new IntersectionObserver(
+      this.loadMoreInvoices,
+      observerOptions
+    );
+    observer.observe(this.$refs.trigger);
   },
 };
 </script>
@@ -705,7 +714,7 @@ export default {
   }
 
   .empty-title {
-    color: #fff;
+    color: v-bind(autofillTextColor);
     font-weight: 700;
     font-size: 25px;
     margin-bottom: 20px;
@@ -721,6 +730,10 @@ export default {
     span {
       font-weight: 700;
     }
+  }
+  .trigger {
+    height: 10px;
+    width: 100%;
   }
 }
 </style>

@@ -482,8 +482,9 @@ export default {
       const invoices = collection(db, "invoices");
 
       if (!this.editingMode) {
+        let randomId = uid(6);
         await addDoc(invoices, {
-          invoiceId: uid(6),
+          invoiceId: randomId,
           createdAt: this.createdAt,
           paymentDue: this.paymentDue,
           description: this.description,
@@ -509,7 +510,7 @@ export default {
           type: "invoice",
         });
 
-        // Обновляем данные о длине коллекции внтури спец документа
+        // Refresh length info inside document stored in database
         const lengthStorage = doc(db, "invoices", "hHjzseGrUKntiPgVBTbS");
         await updateDoc(lengthStorage, {
           fullLength: increment(1),
@@ -528,6 +529,7 @@ export default {
             paidLength: increment(1),
           });
         }
+        localStorage.setItem(randomId, true);
       } else {
         const updatedInvoice = doc(db, "invoices", this.currentInvoice.docId);
         await updateDoc(updatedInvoice, {
@@ -659,24 +661,6 @@ export default {
   },
 
   created() {
-    // //Dynamic DatePicker theme changer -->
-    // window.addEventListener("click", (e) => {
-    //   console.log(e.target);
-    //   if (e.target.classList.contains("dp__input")) {
-    //     if (
-    //       document.querySelector(".invoice-content").style.backgroundColor ==
-    //       "rgb(255, 255, 255)"
-    //     ) {
-    //       setTimeout(() => {
-    //         document.querySelector(".dp__menu").style.opacity = "1";
-    //       }, 1000);
-    //       document.querySelector(".dp__menu").style.backgroundColor = "#fff";
-    //     }
-    //     document.querySelector(".dp__menu").style.opacity = "1";
-    //   }
-    // });
-    // // <--
-
     if (this.editingMode) {
       this.invoiceId = this.currentInvoice.invoiceId;
       this.paymentDue = this.currentInvoice.paymentDue;
@@ -715,7 +699,7 @@ export default {
 
     this.paymentDue = this.dateToString(cloneDate);
 
-    //Make data disabled in editing mode
+    //Make datepicker disabled in editing mode
     if (this.editingMode) {
       setTimeout(() => {
         document.querySelector(
@@ -761,7 +745,6 @@ export default {
 
     @media (max-width: 640px) {
       border-radius: 0;
-      // position: absolute;
     }
 
     @media (max-width: 500px) {
@@ -928,7 +911,6 @@ export default {
     font-weight: 700;
     font-size: 16px;
 
-    // padding: 16px;
     border-radius: 8px;
     width: 100%;
     position: absolute;
@@ -952,7 +934,7 @@ export default {
     }
   }
 
-  //Date picker
+  //Datepicker
   .dp__main input {
     padding: 0px 36px;
   }

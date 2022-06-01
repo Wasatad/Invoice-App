@@ -6,13 +6,13 @@ import {
   getDocs,
   collection,
   orderBy,
-  startAt,
   where,
   limit,
   updateDoc,
   deleteDoc,
   increment,
   doc,
+  startAt,
 } from "firebase/firestore";
 
 export default createStore({
@@ -21,9 +21,11 @@ export default createStore({
     stateInvoices: [],
     invoiceForm: false,
     deleteModalActive: null,
+    isDeletionAllowed: false,
     collectionLength: 0,
     itemsPerPage: 12,
     lastDocSnapshot: null,
+    lastDocTimeStamp: null,
     invoicesIsLoading: false,
     currentInvoice: null,
     editingMode: null,
@@ -34,6 +36,7 @@ export default createStore({
     filters: { Draft: false, Pending: false, Paid: false },
   },
   getters: {
+    //CSS variables
     white: () => {
       return "#fff";
     },
@@ -131,10 +134,17 @@ export default createStore({
     },
     TOGGLE_MODAL(state) {
       state.deleteModalActive = !state.deleteModalActive;
+      if (state.deleteModalActive) {
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.overflow = "visible";
+      }
     },
     CONFIRM_DELETE(state, payload) {
-      console.log(payload);
       state.deleteConfirmed = payload;
+    },
+    SET_DELETION_RULE(state) {
+      state.isDeletionAllowed = true;
     },
     SET_FILTERS(state, payload) {
       state.filters = payload;
@@ -185,17 +195,18 @@ export default createStore({
   },
   actions: {
     async GET_INVOICES(context, payload) {
-      //1. Обнуление списка примененных фильтров, списка инвойсов в state и установка начальной страницы в пагинации
+      //1. Reset filters list and clear invoices in state
       let filterTerms = [];
       context.state.showPlaceholder = false;
 
-      // Проверяем, не вызвана ли функция их обзорщика скролла
+      //2. Check if function was called from scroll listener
       if (payload != "addMoreInvoices") {
         context.state.stateInvoices = [];
         context.state.invoicesIsLoading = true;
+        this.lastDocSnapshot = null;
       }
 
-      //2. Формирование списка примененных фильтров в виде массива
+      //3. Transforming applied filters into an array
       const invoices = collection(db, "invoices");
       filterTerms = Object.keys(context.state.filters).filter(
         (k) => context.state.filters[k]
@@ -204,11 +215,11 @@ export default createStore({
         filterTerms = ["Draft", "Pending", "Paid"];
       }
 
-      //3. Проверяем, есть ли примененные фильтры и устанавливаем длину всего списка инвойсов с учетом полученной информации
+      //4. Check invoices collection length
       async function checkLength() {
         let length = 0;
 
-        //4. Данные о длине списка инвойсов хранятся в отдельном документе в базе данных и редактируются при каждом добавлении/удалении инвойса. Это сделано для экономии времени и вычислительных ресурсов, чтобы каждый раз не обрабатывать всю длину коллекции.
+        //5. Collection length stored in document inside collection. This was made for better performance (collection length does not recalculate each time invoices list was updated)
         let q = query(invoices, where("name", "==", "lengthStore"));
         let querySnapshot = await getDocs(q);
 
@@ -242,49 +253,52 @@ export default createStore({
         }
       }
 
-      //5. Передаю длину коллекции с учетом примененных фильтров в переменную определяющую пагинацию
+      //6. Update collection length inside state
       context.state.collectionLength = await checkLength();
 
-      //6. Определяю таймстамп первого инвойса, чтобы отсчитывать от него следующие страницы
+      //7. Find first`s invoice timestamp. It`s gonna be a start point for collection building
       let searchFirstDocQ = query(
         invoices,
+        where("status", "in", filterTerms),
         where("type", "==", "invoice"),
         orderBy("timestamp", "desc"),
         limit(1)
       );
       let firstDocSnapshot = await getDocs(searchFirstDocQ);
       let firstTimeStamp = 0;
+
       firstDocSnapshot.forEach((doc) => {
         firstTimeStamp = doc.data().timestamp;
       });
 
-      //6. Запрашиваем блок инвойсов с учетом примененных фильтров и переносим их в state
+      //.8 Sending a request for a block of invoices with applied filters. Filling state.
       const q = query(
         invoices,
         where("type", "==", "invoice"),
         where("status", "in", filterTerms),
         orderBy("timestamp", "desc"),
-        startAt(this.lastDocSnapshot ? this.lastDocSnapshot : firstTimeStamp),
+        startAt(this.lastDocSnapshot ? this.lastDocTimeStamp : firstTimeStamp),
         limit(context.state.itemsPerPage)
       );
       let querySnapshot = await getDocs(q);
-      // console.log(querySnapshot.docs.length);
 
-      //Сохраняем последний загруженный документ
-      this.lastDocSnapshot =
-        querySnapshot.docs[context.state.stateInvoices.length - 1];
+      //9. Saving last loaded document
+
+      this.lastDocSnapshot = querySnapshot.docs[context.state.itemsPerPage - 1];
+
+      if (this.lastDocSnapshot) {
+        this.lastDocTimeStamp = this.lastDocSnapshot.data().timestamp;
+      }
+
       if (querySnapshot.docs.length < 1) {
-        // console.log(context.state.stateInvoices);
-
         context.state.invoicesIsLoading = false;
         context.state.showPlaceholder = true;
       }
-
       querySnapshot.forEach((doc) => {
         if (
-          context.state.stateInvoices.find(
+          !context.state.stateInvoices.find(
             (invoice) => invoice.docId == doc.id
-          ) == undefined
+          )
         ) {
           const data = {
             docId: doc.id,
@@ -305,22 +319,17 @@ export default createStore({
           };
 
           context.commit("GET_INVOICES", data);
-          context.state.invoicesIsLoading = false;
-
-          checkLength();
         }
       });
+      context.state.invoicesIsLoading = false;
 
-      //   //* Функция вызывается при загрузке страницы с начальными параметрами, при каждом изменении фильтра и при каждом клике по пагинации
-      //   //Также вызывается при добавлении нового инвойса, при этом номер страницы принудительно ставится = 1, переключается пагинация. setPage(page)
-      //Обновляются сведения о длине коллекции для каждого фильтра
-      //Данные о длинне обновляются также при обновлении статуса инвойса
+      checkLength();
     },
     async DELETE_INVOICE(context) {
       const deletedInvoice = context.state.currentInvoice.docId;
       await deleteDoc(doc(db, "invoices", deletedInvoice));
 
-      // Обновляем данные о длине коллекции внтури спец документа
+      // Refreshing collection length in document inside database
       const lengthStorage = doc(db, "invoices", "hHjzseGrUKntiPgVBTbS");
       await updateDoc(lengthStorage, {
         fullLength: increment(-1),
