@@ -35,7 +35,7 @@ Users are able to:
 
 ### Link
 
-- Live Site URL: [Demo](https://wasatad.github.io/Invoices-App/)
+- Live Site URL: [Demo](https://wasatad.github.io/Invoice-App/)
 
 ## My process
 
