@@ -220,7 +220,7 @@
               <input
                 @input="validate"
                 required
-                type="text"
+                type="number"
                 id="qty"
                 v-model="item.qty"
               />
