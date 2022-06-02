@@ -8,5 +8,5 @@ module.exports = defineConfig({
       },
     },
   },
-  publicPath: process.env.NODE_ENV === "production" ? "/invoice-app/" : "/",
+  publicPath: process.env.NODE_ENV === "production" ? "/Invoice-App/" : "/",
 });
