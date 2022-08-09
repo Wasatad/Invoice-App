@@ -36,6 +36,8 @@ Users are able to:
 ### Link
 
 - Live Site URL: [Demo](https://wasatad.github.io/Invoice-App/)
+- Walk-through Video: [Watch](https://www.youtube.com/watch?v=U4Oa5ENp-fY)
+
 
 ## My process
 
